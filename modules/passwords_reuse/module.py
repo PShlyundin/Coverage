@@ -13,34 +13,34 @@ class PasswordsReuseModule(IModule):
     
     def run(self, domain_state: DomainState) -> Dict[str, Any]:
         """Run password reuse check with admin accounts"""
-        # Словарь для хранения хешей и соответствующих учетных записей
+        # Dictionary to store hashes and corresponding accounts
         hash_to_accounts: Dict[str, List[str]] = {}
         
-        # Собираем все учетные записи с хешами
+        # Collect all accounts with hashes
         for user in domain_state.users.values():
             if user.nt_hash:
                 if user.nt_hash not in hash_to_accounts:
                     hash_to_accounts[user.nt_hash] = []
                 hash_to_accounts[user.nt_hash].append(user.sam_account_name)
         
-        # Список для хранения результатов
+        # List to store results
         password_reuse = []
         
-        # Проверяем каждый хеш
+        # Check each hash
         for nt_hash, accounts in hash_to_accounts.items():
-            # Если есть более одной учетной записи с этим хешем
+            # If there is more than one account with this hash
             if len(accounts) > 1:
-                # Получаем пароль для отображения
+                # Get password for display
                 first_user = domain_state.find_by_sam_account_name(accounts[0])
                 password = mask_password(first_user.cracked_password) if first_user and first_user.cracked_password else "Not cracked"
                 
-                # Проверяем, есть ли среди них административные учетные записи
+                # Check if there are administrative accounts among them
                 admin_accounts = [acc for acc in accounts if domain_state.is_domain_admin(acc)]
                 
-                # Если есть хотя бы один административный аккаунт
+                # If there is at least one admin account
                 if admin_accounts:
                     for admin_acc in admin_accounts:
-                        # Собираем все аккаунты с тем же хешем, кроме текущего админа
+                        # Collect all accounts with the same hash, except current admin
                         reuse_accounts = [acc for acc in accounts if acc != admin_acc]
                         
                         password_reuse.append({
@@ -50,7 +50,7 @@ class PasswordsReuseModule(IModule):
                             "is_cracked": first_user and first_user.cracked_password is not None
                         })
         
-        # Сортируем результаты: сначала сбрученные пароли, потом остальные
+        # Sort results: first cracked passwords, then others
         password_reuse.sort(key=lambda x: (not x["is_cracked"], x["admin_account"]))
         
         if not password_reuse:
@@ -59,4 +59,4 @@ class PasswordsReuseModule(IModule):
             "template": self.template_path,
             "password_reuse": password_reuse,
             "total_found": len(password_reuse)
-        } 
+        }

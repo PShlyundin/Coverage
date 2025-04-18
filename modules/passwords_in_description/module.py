@@ -4,6 +4,7 @@ from typing import Dict, List, Any, Tuple
 from core.domain_state import DomainState
 from core.interfaces import IModule
 from core.utils import mask_password
+
 class PasswordsInDescriptionModule(IModule):
     def __init__(self):
         self._template_path = "template.md"
@@ -101,4 +102,4 @@ class PasswordsInDescriptionModule(IModule):
             "template": self.template_path,
             "passwords_in_description": findings,
             "total_found": len(findings)
-        } 
+        }

@@ -53,4 +53,4 @@ class ReversibleEncryptionModule(IModule):
             "template": self.template_path,
             "reversible_encryption": findings,
             "total_found": len(findings)
-        } 
+        }

@@ -17,7 +17,7 @@ class Pre2kModule(IModule):
 
     def run(self, domain_state: DomainState) -> Dict[str, Any]:
         """Run Pre-2000 compatibility check"""
-        # Список пользователей с Pre-2000 совместимостью
+        # List of users with Pre-2000 compatibility
         all_users = []
         enabled = []
         disabled = []
@@ -43,4 +43,4 @@ class Pre2kModule(IModule):
             "template": self.template_path,
             "all_users": all_users,
             "total_found": len(all_users)
-        } 
+        }

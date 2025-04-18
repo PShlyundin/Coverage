@@ -13,7 +13,7 @@ class KerberoastingModule(IModule):
     
     def run(self, domain_state: DomainState) -> Dict[str, Any]:
         """Run weak passwords check"""
-        # Разделяем пользователей по категориям
+        # Categorize users
         all_users = []
         
         for user in domain_state.users.values():
@@ -32,4 +32,4 @@ class KerberoastingModule(IModule):
             "template": self.template_path,
             "all_users": all_users,
             "total_found": len(all_users)
-        } 
+        }
