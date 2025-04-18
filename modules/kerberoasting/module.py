@@ -1,6 +1,7 @@
 from typing import Dict, Any
 from core.interfaces import IModule
 from core.domain_state import DomainState
+from core.utils import mask_password
 
 class KerberoastingModule(IModule):
     def __init__(self):
@@ -13,32 +14,20 @@ class KerberoastingModule(IModule):
     def run(self, domain_state: DomainState) -> Dict[str, Any]:
         """Run weak passwords check"""
         # Разделяем пользователей по категориям
-        domain_admin_users = []
-        regular_users = []
-        disabled_users = []
+        all_users = []
         
         for user in domain_state.users.values():
-            if user.password_cracked:
+            if user.has_spn and user.sam_account_name != 'krbtgt':
                 user_data = {
                     "username": user.sam_account_name,
+                    "spn": user.spn_list,
                     "password": mask_password(user.cracked_password),
-                    "is_domain_admin": domain_state.is_domain_admin(user.object_sid),
-                    "enabled": user.enabled
+                    "is_domain_admin": domain_state.is_domain_admin(user.object_sid)
                 }
-                
-                if domain_state.is_domain_admin(user.object_sid):
-                    domain_admin_users.append(user_data)
-                elif user.enabled:
-                    regular_users.append(user_data)
-                else:
-                    disabled_users.append(user_data)
-        
-        # Объединяем все категории в один список с сохранением порядка
-        all_users = domain_admin_users + regular_users + disabled_users
+                all_users.append(user_data)
         
         if not all_users:
             return {}
-            
         return {
             "template": self.template_path,
             "all_users": all_users,

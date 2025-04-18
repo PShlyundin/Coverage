@@ -15,15 +15,37 @@ class WeakPasswordsModule(IModule):
         """Run weak passwords check"""
         weak_password_users = []
         
+        admin_users = []
         for user in domain_state.users.values():
-            if user.password_cracked and user.enabled:
-                weak_password_users.append({
+            if user.password_cracked and domain_state.is_domain_admin(user.sam_account_name):
+                admin_users.append({
                     "username": user.sam_account_name,
                     "password": mask_password(user.cracked_password),
-                    "is_domain_admin": domain_state.is_domain_admin(user.object_sid),
+                    "is_domain_admin": domain_state.is_domain_admin(user.sam_account_name),
                     "enabled": user.enabled
                 })
-        print(f"Weak passwords: {weak_password_users}")
+        weak_password_users = admin_users
+        enabled_users = []
+        for user in domain_state.users.values():
+            if user.password_cracked and user.enabled and not user.sam_account_name in [e['username'] for e in weak_password_users]:
+                enabled_users.append({
+                    "username": user.sam_account_name,
+                    "password": mask_password(user.cracked_password),
+                    "is_domain_admin": domain_state.is_domain_admin(user.sam_account_name),
+                    "enabled": user.enabled
+                })
+        weak_password_users = weak_password_users + enabled_users
+        other_users = []
+        for user in domain_state.users.values():
+            if user.password_cracked and not user.enabled and not user.sam_account_name in [e['username'] for e in weak_password_users]:
+                other_users.append({
+                    "username": user.sam_account_name,
+                    "password": mask_password(user.cracked_password),
+                    "is_domain_admin": domain_state.is_domain_admin(user.sam_account_name),
+                    "enabled": user.enabled
+                })
+        weak_password_users = weak_password_users + other_users
+
         if not weak_password_users:
             return {}
             

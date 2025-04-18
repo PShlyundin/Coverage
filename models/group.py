@@ -6,11 +6,13 @@ class Group:
     """Group model"""
     name: str
     sid: str
-    members: List[str] = field(default_factory=list)  # List of user SIDs 
-
+    memberof: List[str] = field(default_factory=list)  # List of user SIDs 
+    members: List[str] = field(default_factory=list)
+    
     def __str__(self) -> str:
         return f"""
         Name: {self.name}
         SID: {self.sid}
-        Members: {self.members}
+        memberof: {self.memberof}
+        members: {self.members}
         """ 

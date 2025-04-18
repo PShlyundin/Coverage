@@ -13,10 +13,11 @@ class User:
     clear_text_password: Optional[str] = None  # Clear text password from secretsdump
     cracked_password: Optional[str] = None  # Cracked password from hashcat
     enabled: bool = True
-    groups: List[str] = field(default_factory=list)  # List of group SIDs
+    memberof: List[str] = field(default_factory=list)  # List of group SIDs
     user_with_domain: Optional[str] = None
     user_account_control: int = 0
     description: Optional[str] = None
+    members: List[str] = field(default_factory=list)
 
     @property
     def has_spn(self) -> bool:
@@ -37,11 +38,12 @@ class User:
         SPNs: {self.spn_list}
         ObjectSID: {self.object_sid}
         Enabled: {self.enabled}
-        Groups: {self.groups}
+        MemberOf: {self.memberof}
         UserAccountControl: {self.user_account_control}
         ClearTextPassword: {self.clear_text_password}
         LMHash: {self.lm_hash}
         NTHash: {self.nt_hash}
         CrackedPassword: {self.cracked_password}
         Description: {self.description}
+        Members: {self.members}
         """

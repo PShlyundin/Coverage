@@ -17,5 +17,7 @@ class ModuleRunner:
                     result['module_name'] = module
                     results.append(result)
             except Exception as e:
+                import traceback
+                traceback.print_exc()
                 print(f"Error running module: {str(e)}")
         return results 

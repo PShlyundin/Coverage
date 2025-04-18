@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Current File with Arguments",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "args": "--ldd ~/work/ctsg/minzdrav/ldapdomaindump --ntds ~/work/ctsg/minzdrav/DUMP --hashcat ~/work/ctsg/minzdrav/DUMP/brute.out -m weak_passwords"
+        }
+    ]
+}

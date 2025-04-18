@@ -2,7 +2,7 @@ from typing import Dict, Optional, List, Set
 from models.user import User
 from models.group import Group
 from models.computer import Computer
-from core.utils import is_sid_in_domain_admin_groups
+from core.utils import is_user_in_domain_admin_groups
 
 class DomainState:
     """Class for storing domain state"""
@@ -76,7 +76,7 @@ class DomainState:
             if computer.nt_hash == nt_hash:
                 computer.cracked_password = password
 
-    def is_domain_admin(self, user_sid: str) -> bool:
+    def is_domain_admin(self, sam_account_name: str) -> bool:
         """Check if user is domain admin
         
         This method recursively checks if the user is a member of:
@@ -85,15 +85,14 @@ class DomainState:
         - Enterprise Admins group
         
         Args:
-            user_sid: User SID to check
+            sam_account_name: User SAM Account Name to check
             
         Returns:
             True if user is a domain admin
         """
-        if not self.domain_sid:
+        if sam_account_name not in self.users:
             return False
-            
-        return is_sid_in_domain_admin_groups(user_sid, self.domain_sid, self.groups)
+        return is_user_in_domain_admin_groups(sam_account_name, self)
 
     def find_by_sam_account_name(self, sam_account_name: str) -> Optional[User]:
         """Find user by SAM Account Name"""
@@ -103,17 +102,18 @@ class DomainState:
         computer = self.computers.get(sam_account_name)
         if computer:
             return computer
+        group = self.groups.get(sam_account_name)
+        if group:
+            return group
         return None
     
     def find_by_sid(self, sid: str) -> Optional[User]:
         """Find user by SID"""
         sam_account_name = self.sid_to_sam.get(sid)
-        user = self.find_by_sam_account_name(sam_account_name)  
-        if user:
-            return user
-        computer = self.computers.get(sam_account_name)
-        if computer:
-            return computer
+        if sam_account_name:    
+            obj = self.find_by_sam_account_name(sam_account_name['name'])  
+            if obj:
+                return obj
         return None    
     
     def print_users(self) -> None:

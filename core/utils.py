@@ -111,7 +111,7 @@ def mask_password(password: str) -> str:
     else:
         return "***"
 
-def get_domain_admin_group_sids(domain_sid: str) -> List[str]:
+def get_domain_admin_recursive_groups(domain, da_groups: List[str]) -> List[str]:
     """Get SIDs of domain admin groups
     
     Args:
@@ -119,18 +119,25 @@ def get_domain_admin_group_sids(domain_sid: str) -> List[str]:
         
     Returns:
         List of SIDs for Domain Admins, Administrators and Enterprise Admins groups
-    """
-    # Remove the last component (RID) from domain SID
-    base_sid = domain_sid.rsplit('-', 1)[0]
-    
+    """    
     # Well-known RIDs for admin groups
-    return [
-        f"{base_sid}-512",  # Domain Admins
-        f"{base_sid}-544",  # Administrators
-        f"{base_sid}-519"   # Enterprise Admins
-    ]
+    da_groups = [domain.find_by_sid(e) for e in da_groups if type(e) == str]
+    #recursively get all members of the groups
+    for group_name, group in domain.groups.items():
+        for member in group.memberof:
+            if member in [group.name for group in da_groups] and not group in da_groups:
+                da_groups.append(group)
 
-def get_all_group_members(groups: Dict[str, Group], target_group_sids: List[str], visited_groups: Optional[Set[str]] = None) -> Set[str]:
+    return da_groups
+
+def cn2sam(domain, dn: str) -> str:
+    """Convert CN to SAM Account Name"""
+    for user in domain.users.values():
+        if user.distinguished_name == dn:
+            return user.sam_account_name
+    return None
+
+def get_all_group_members(domain, target_group_sids: List[str]|str) -> List[str]:
     """Recursively get all members of target groups
     
     Args:
@@ -141,30 +148,20 @@ def get_all_group_members(groups: Dict[str, Group], target_group_sids: List[str]
     Returns:
         Set of member SIDs
     """
-    if visited_groups is None:
-        visited_groups = set()
-        
-    member_sids = set()
-    
-    for group_sid in target_group_sids:
-        if group_sid in visited_groups:
-            continue
-            
-        visited_groups.add(group_sid)
-        
-        if group_sid not in groups:
-            continue
-            
-        group = groups[group_sid]
-        member_sids.update(group.members)
-        
-        # Recursively check nested groups
-        nested_members = get_all_group_members(groups, group.members, visited_groups)
-        member_sids.update(nested_members)
-        
-    return member_sids
+    members = []
+    if isinstance(target_group_sids, str):
+        target_group_sids = [target_group_sids]
 
-def is_sid_in_domain_admin_groups(sid: str, domain_sid: str, groups: Dict[str, Group]) -> bool:
+    for group in target_group_sids:
+        users = group.members
+        for user in users:
+            user = cn2sam(domain, user)
+            if user not in members: 
+                members.append(user)
+        
+    return members
+
+def is_user_in_domain_admin_groups(sam_account_name: str, domain) -> bool:
     """Check if SID belongs to domain admin groups
     
     Args:
@@ -175,7 +172,15 @@ def is_sid_in_domain_admin_groups(sid: str, domain_sid: str, groups: Dict[str, G
     Returns:
         True if SID belongs to domain admin groups
     """
-    admin_group_sids = get_domain_admin_group_sids(domain_sid)
-    admin_members = get_all_group_members(groups, admin_group_sids)
+    da_groups=[
+        f"{domain.domain_sid}-512",  # Domain Admins
+        f"S-1-5-32-544",  # Administrators
+        f"{domain.domain_sid}-519"   # Enterprise Admins
+    ]
+    count_groups = 0
+    while count_groups < len(da_groups):
+        count_groups = len(da_groups)
+        da_groups = get_domain_admin_recursive_groups(domain, da_groups)
     
-    return sid in admin_members
+    admin_members = get_all_group_members(domain, da_groups)
+    return sam_account_name in admin_members

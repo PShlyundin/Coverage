@@ -39,6 +39,10 @@ class BaseLdapParser:
 
     def __str__(self) -> str:
         return f"BaseLdapParser: {self.json_path}"
+    
+    def CN2name(self, cn: str) -> str:
+        """Convert CN to name"""
+        return cn.split(',')[0].split('=')[1]
 
 class UserParser(BaseLdapParser):
     """Parser for domain_users.json"""
@@ -52,10 +56,11 @@ class UserParser(BaseLdapParser):
                     distinguished_name=self.get_attribute(user_data, 'distinguishedName', ''),
                     spn_list=self.get_attribute(user_data, 'servicePrincipalName', [], is_list=True),
                     object_sid=self.get_attribute(user_data, 'objectSid', ''),
-                    groups=self.get_attribute(user_data, 'memberOf', [], is_list=True),
+                    memberof=[self.CN2name(e) for e in self.get_attribute(user_data, 'memberOf', [], is_list=True)],
                     user_account_control=self.get_attribute(user_data, 'userAccountControl', 0),
                     enabled=not bool(user_account_control & 0x2),
-                    description=self.get_attribute(user_data, 'description', '')
+                    description=self.get_attribute(user_data, 'description', ''),
+                    members=self.get_attribute(user_data, 'member', [], is_list=True)
                 )
                 domain_state.add_user(user)
             except Exception as e:
@@ -70,7 +75,8 @@ class GroupParser(BaseLdapParser):
                 group = Group(
                     name=self.get_attribute(group_data, 'name', ''),
                     sid=self.get_attribute(group_data, 'objectSid', ''),
-                    members=self.get_attribute(group_data, 'members', [], is_list=True)
+                    memberof=[self.CN2name(e) for e in self.get_attribute(group_data, 'memberOf', [], is_list=True)],
+                    members=self.get_attribute(group_data, 'member', [], is_list=True)
                 )
                 domain_state.add_group(group)
             except Exception as e:
@@ -87,9 +93,10 @@ class ComputerParser(BaseLdapParser):
                     distinguished_name=self.get_attribute(computer_data, 'distinguishedName', ''),
                     spn_list=self.get_attribute(computer_data, 'servicePrincipalName', [], is_list=True),
                     object_sid=self.get_attribute(computer_data, 'objectSid', ''),
-                    groups=self.get_attribute(computer_data, 'memberOf', [], is_list=True),
+                    memberof=[self.CN2name(e) for e in self.get_attribute(computer_data, 'memberOf', [], is_list=True)],
                     user_account_control=self.get_attribute(computer_data, 'userAccountControl', 0),
-                    description=self.get_attribute(computer_data, 'description', '')
+                    description=self.get_attribute(computer_data, 'description', ''),
+                    members=self.get_attribute(computer_data, 'member', [], is_list=True)
                 )
                 domain_state.add_computer(computer)
             except Exception as e:
